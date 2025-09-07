@@ -215,8 +215,37 @@ StructLoop:
 			)
 		}
 
-		// 不要覆盖现有值。
+		// 不要覆盖现有值，但检查现有值是否需要深度注入。
 		if !isNilOrZero(field, fieldType) {
+			// 如果字段已经有值且是结构体指针，检查是否需要深度注入
+			if isStructPtr(fieldType) && !tag.Private {
+				existingValue := field.Interface()
+				// 检查这个对象是否已经在依赖图中
+				var found bool
+				for _, existing := range g.unnamed {
+					if existing.Value == existingValue {
+						found = true
+						break
+					}
+				}
+				// 如果不在依赖图中，添加并递归注入
+				if !found {
+					existingObject := &Object{
+						Value:   existingValue,
+						private: false,
+						created: false,
+					}
+					if err := g.Provide(existingObject); err == nil {
+						// 递归填充现有对象的依赖（深度注入）
+						if err := g.populateExplicit(existingObject); err != nil {
+							return err
+						}
+						if g.Logger != nil {
+							g.Logger.Info("deep injected existing %v in field %s of %v", existingObject, o.reflectType.Elem().Field(i).Name, o)
+						}
+					}
+				}
+			}
 			continue
 		}
 
@@ -337,6 +366,11 @@ StructLoop:
 
 		// 将新创建的对象添加到已知对象集合中。
 		if err = g.Provide(newObject); err != nil {
+			return err
+		}
+
+		// 递归填充新创建对象的依赖（深度注入）
+		if err = g.populateExplicit(newObject); err != nil {
 			return err
 		}
 

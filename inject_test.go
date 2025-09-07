@@ -1004,23 +1004,18 @@ type TypeCForTestDeepInject struct {
 }
 
 type TypeDForTestDeepInject struct {
-	A *TypeAForTestDeepInject
+	A *TypeAForTestDeepInject `inject:""`
 }
 
 func TestForDeepInject(t *testing.T) {
 	var g inject.Graph
 	var err error
-	a := new(TypeAForTestDeepInject)
 	b := new(TypeBForTestDeepInject)
 	c := new(TypeCForTestDeepInject)
 	d := &TypeDForTestDeepInject{
 		A: &TypeAForTestDeepInject{},
 	}
-	if err = g.Provide(&inject.Object{
-		Value: a,
-	}); err != nil {
-		t.Fatal("failed to inject a")
-	}
+
 	if err = g.Provide(&inject.Object{
 		Value: b,
 	}); err != nil {
@@ -1036,6 +1031,7 @@ func TestForDeepInject(t *testing.T) {
 	}); err != nil {
 		t.Fatal("failed to inject d")
 	}
+
 	if err = g.Populate(); err != nil {
 		t.Fatal("failed to populate")
 	}
