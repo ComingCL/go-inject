@@ -1,3 +1,3 @@
-module go-inject
+module github.com/ComingCL/go-inject
 
-go 1.19
+go 1.18

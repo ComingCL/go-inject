@@ -36,7 +36,9 @@ func (c *Container) ProvideWithName(name string, bean interface{}) error {
 func (c *Container) Populate() error {
 	start := time.Now()
 	defer func() {
-		c.graph.Logger.Info("populate the bean container toke time %s", time.Now().Sub(start))
+		if c.graph.Logger != nil {
+			c.graph.Logger.Info("populate the bean container toke time %s", time.Now().Sub(start))
+		}
 	}()
 	return c.graph.Populate()
 }

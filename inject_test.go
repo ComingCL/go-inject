@@ -2,13 +2,14 @@ package inject_test
 
 import (
 	"fmt"
-	inject "go-inject"
 	"math/rand"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ComingCL/go-inject"
 )
 
 func init() {
@@ -243,7 +244,7 @@ func TestProvideTwoOfTheSame(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *go-inject_test.TypeAnswerStruct"
+	const msg = "provided two unnamed instances of type *github.com/ComingCL/go-inject_test.TypeAnswerStruct"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -256,7 +257,7 @@ func TestProvideTwoOfTheSameWithPopulate(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *go-inject_test.TypeAnswerStruct"
+	const msg = "provided two unnamed instances of type *github.com/ComingCL/go-inject_test.TypeAnswerStruct"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
