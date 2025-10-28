@@ -998,6 +998,7 @@ type TypeAForTestDeepInject struct {
 }
 
 type TypeBForTestDeepInject struct {
+	A *TypeAForTestDeepInject `inject:""`
 }
 
 type TypeCForTestDeepInject struct {
@@ -1045,5 +1046,8 @@ func TestForDeepInject(t *testing.T) {
 	}
 	if d.A.C.B == nil {
 		t.Fatal("d.A.C.B is nil")
+	}
+	if b.A == nil {
+		t.Fatal("b.A is nil")
 	}
 }
