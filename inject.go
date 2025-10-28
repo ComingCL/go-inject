@@ -114,6 +114,56 @@ func (g *Graph) Provide(objects ...*Object) error {
 	return nil
 }
 
+// provideForDeepInject 专门用于深度注入时提供对象，允许同类型的多个实例
+func (g *Graph) provideForDeepInject(o *Object) error {
+	o.reflectType = reflect.TypeOf(o.Value)
+	o.reflectValue = reflect.ValueOf(o.Value)
+
+	if o.Fields != nil {
+		return fmt.Errorf("fields were specified on object %v when it was provided", o)
+	}
+
+	if o.Name == "" {
+		if !isStructPtr(o.reflectType) {
+			return fmt.Errorf(
+				"expected unnamed object value to be a pointer to a struct but got type %s with value %v",
+				o.reflectType,
+				o.Value)
+		}
+
+		// 对于深度注入，我们不检查类型重复，直接添加到unnamed列表
+		// 但我们需要检查是否已经存在相同的实例（相同的指针）
+		for _, existing := range g.unnamed {
+			if existing.Value == o.Value {
+				// 相同的实例已存在，不需要重复添加
+				return nil
+			}
+		}
+
+		g.unnamed = append(g.unnamed, o)
+	} else {
+		if g.named == nil {
+			g.named = make(map[string]*Object)
+		}
+
+		if g.named[o.Name] != nil {
+			return fmt.Errorf("provided two instances named %s", o.Name)
+		}
+		g.named[o.Name] = o
+	}
+
+	if g.Logger != nil {
+		if o.created {
+			g.Logger.Info("created %v", o)
+		} else if o.embedded {
+			g.Logger.Info("provided embedded %v", o)
+		} else {
+			g.Logger.Info("provided %v for deep injection", o)
+		}
+	}
+	return nil
+}
+
 // Populate 填充不完整的对象
 func (g *Graph) Populate() error {
 	for _, o := range g.named {
@@ -235,14 +285,16 @@ StructLoop:
 						private: false,
 						created: false,
 					}
-					if err := g.Provide(existingObject); err == nil {
-						// 递归填充现有对象的依赖（深度注入）
-						if err := g.populateExplicit(existingObject); err != nil {
-							return err
-						}
-						if g.Logger != nil {
-							g.Logger.Info("deep injected existing %v in field %s of %v", existingObject, o.reflectType.Elem().Field(i).Name, o)
-						}
+					// 对于深度注入，我们需要特殊处理类型重复的情况
+					if err := g.provideForDeepInject(existingObject); err != nil {
+						return fmt.Errorf("failed to provide existing object for deep injection: %v", err)
+					}
+					// 递归填充现有对象的依赖（深度注入）
+					if err := g.populateExplicit(existingObject); err != nil {
+						return err
+					}
+					if g.Logger != nil {
+						g.Logger.Info("deep injected existing %v in field %s of %v", existingObject, o.reflectType.Elem().Field(i).Name, o)
 					}
 				}
 			}
